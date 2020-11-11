@@ -57,19 +57,21 @@ class QueryEngine {
 	}
 
 	public ResultSet execute(SQLSelectForUpdateStatement stmt) {
-		//System.out.println("Locked. " + Thread.currentThread().getName());
 		// Rather than performing a SELECT operation, just note the records
 		// touched and lock them.
 		Table table = database.getTable(stmt.getTable().getTableName());
-		
-		table.lockSet.locks.get(0).lock();
-		//System.out.println("Locked. " + Thread.currentThread().getName());
+		table.tableLocks.locks.get(0).lock();
+		//System.out.println("Locked Table " + Thread.currentThread().getName() + " " + table.toString());
 		// Visit all rows identified by SELECT and meeting the WHERE clause.
 		// The RecordVisitorLock class is incomplete, it needs to be completed
 		// as part of the deadlock avoidance policy.
 		RecordVisitorLock method = new RecordVisitorLock(table);
+		
 		table.visit(method, stmt.getWhereClause());
-		// ...
+		table.rowLocks.add(method.lock);
+		//System.out.println("Added row lock, " + table.rowLocks.locks);
+		//System.out.println("Locked Row. " + Thread.currentThread().getName());
+		//table.lockSet.locks.get(0).unlock();
 		return new ResultSet(true);
 	}
 
@@ -81,15 +83,14 @@ class QueryEngine {
 		// to count the number of matching rows and to track presence of errors.
 		RecordVisitorUpdate method = new RecordVisitorUpdate(table, stmt.getField(), stmt.getValue(), result);
 		table.visit(method, stmt.getWhereClause());
-
 		return result;
 	}
 
 	public ResultSet execute(SQLInsertIntoStatement stmt) {
 		
 		Table table = database.getTable(stmt.getTable().getTableName());
-		table.lockSet.locks.get(0).lock();
-		//System.out.println("Locked. " + Thread.currentThread().getName());
+		table.tableLocks.locks.get(0).lock();
+		//System.out.println("Locked Table INSERT INTO. " + Thread.currentThread().getName());
 		TableSchema schema = table.getSchema();
 		
 		
@@ -109,8 +110,16 @@ class QueryEngine {
 
 	public ResultSet execute(SQLCommitStatement stmt) {
 		// Release all locks held
-		database.getTable("account").lockSet.release();
-		//System.out.println("Unlocked. " + Thread.currentThread().getName());
+		database.getTable("account").tableLocks.locks.get(1).lock();
+		//System.out.println("Unlocking ALL " + Thread.currentThread().getName());
+		
+		if(database.getTable("account").rowLocks.locks.size() > 0) {
+			for(int i = 0; i < database.getTable("account").rowLocks.locks.size(); i++)
+				database.getTable("account").rowLocks.locks.remove(i);
+		}
+		
+		database.getTable("account").tableLocks.release();
+		//System.out.println("Unlocked ALL " + Thread.currentThread().getName());
 		return new ResultSet(true);
 	}
 }

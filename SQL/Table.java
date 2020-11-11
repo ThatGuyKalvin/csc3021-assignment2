@@ -7,14 +7,16 @@ class Table {
 	private final String name;
 	private final TableIndex primary_index;
 	private final TableSchema schema;
-	public final LockSet lockSet = new LockSet();
+	public final LockSet tableLocks = new LockSet();
+	public final LockSet rowLocks = new LockSet();
 
 	// Constructor
 	Table(final String name_, final TableSchema schema_) {
 		name = name_;
 		schema = schema_;
 		primary_index = new TableIndex(schema.getKey());
-		lockSet.add(new ReentrantLock());
+		tableLocks.add(new ReentrantLock());
+		tableLocks.add(new ReentrantLock());
 	}
 
 	// Get the name of the table

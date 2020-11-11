@@ -4,11 +4,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 class Record {
 	private ArrayList<DataValue> data;
-	public final LockSet locks = new LockSet();
 
 	Record(final int estimated_length) {
 		data = new ArrayList<DataValue>(estimated_length);
-		locks.add(new ReentrantLock());
 	}
 
 	public boolean add(DataValue val) {

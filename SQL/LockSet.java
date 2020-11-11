@@ -12,6 +12,12 @@ class LockSet {
 	public void add(Lock lock) {
 		locks.add(lock);
 	}
+	
+	public void remove(Lock lock) {
+		lock.unlock();
+		locks.remove(lock);
+	}
+
 
 	public void release() {
 		for (Lock lock : locks) {

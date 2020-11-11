@@ -1,9 +1,13 @@
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.Collections;
 
 class RecordVisitorLock implements RecordVisitor {
 	private Table table;
+	public Lock lock = new ReentrantLock();
+	
 
 	RecordVisitorLock(Table table_) {
 		table = table_;
@@ -11,6 +15,7 @@ class RecordVisitorLock implements RecordVisitor {
 
 	public void visit(Record row) {
 		// The record row needs to be locked.
+		lock.lock();
 	}
 
 	// This comparator class can be helpful to sort records as part of the
