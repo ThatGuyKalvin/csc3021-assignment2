@@ -7,8 +7,9 @@ class Table {
 	private final String name;
 	private final TableIndex primary_index;
 	private final TableSchema schema;
-	public final LockSet tableLocks = new LockSet();
-	public final LockSet rowLocks = new LockSet();
+	private final LockSet tableLocks = new LockSet();
+	private final LockSet rowLocks = new LockSet();
+	private final LockSet indexLocks = new LockSet();
 
 	// Constructor
 	Table(final String name_, final TableSchema schema_) {
@@ -18,7 +19,23 @@ class Table {
 		tableLocks.add(new ReentrantLock());
 		tableLocks.add(new ReentrantLock());
 	}
+	
 
+	public LockSet getTableLockSet()
+	{
+		return tableLocks;
+	}
+	
+	public LockSet getRowLockSet()
+	{
+		return rowLocks;
+	}
+	
+	public LockSet getIndexLockSet()
+	{
+		return indexLocks;
+	}
+	
 	// Get the name of the table
 	public String getName() {
 		return name;
@@ -110,7 +127,8 @@ class Table {
 	// index. If we had secondary indices, we would need to insert a pointer
 	// to the row in these indices as well.
 	public boolean insert(Record row) {
+		indexLocks.add(row.getLock());
 		return primary_index.insert(row, schema);
 	}
-
+	
 }

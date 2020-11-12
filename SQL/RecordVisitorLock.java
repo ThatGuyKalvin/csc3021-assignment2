@@ -7,6 +7,8 @@ import java.util.Collections;
 class RecordVisitorLock implements RecordVisitor {
 	private Table table;
 	public Lock lock = new ReentrantLock();
+	public Lock lockIndex;
+	private final Lock newLock = new ReentrantLock();
 	
 
 	RecordVisitorLock(Table table_) {
@@ -16,6 +18,7 @@ class RecordVisitorLock implements RecordVisitor {
 	public void visit(Record row) {
 		// The record row needs to be locked.
 		lock.lock();
+		row.getLock().lock(); // lock index
 	}
 
 	// This comparator class can be helpful to sort records as part of the

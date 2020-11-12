@@ -21,7 +21,7 @@ class LockSet {
 
 	public void release() {
 		for (Lock lock : locks) {
-			lock.unlock();
+ 			lock.unlock();
 		}
 	}
 };
