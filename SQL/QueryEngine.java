@@ -6,7 +6,9 @@ import java.util.concurrent.locks.ReentrantLock;
 // The database is obviously shared among all threads.
 class QueryEngine {
 	private final Database database;
-	
+	private LockSet tableLocks = new LockSet();
+	private LockSet rowLocks = new LockSet();
+
 	QueryEngine(Database database_) {
 		database = database_;
 	}
@@ -49,7 +51,7 @@ class QueryEngine {
 		// (field = X); range queries (field >,< X) and composite
 		// conditions (logical and, or, etc) are not supported.
 		table.visit(new RecordVisitorSelect(table, result, stmt.getFieldList()), stmt.getWhereClause());
-
+		// System.out.println("SELECT. " + Thread.currentThread().getName());
 		// Finish of computation of aggregates
 		result.finalise();
 
@@ -60,18 +62,17 @@ class QueryEngine {
 		// Rather than performing a SELECT operation, just note the records
 		// touched and lock them.
 		Table table = database.getTable(stmt.getTable().getTableName());
-		table.tableLocks.locks.get(0).lock();
-		//System.out.println("Locked Table " + Thread.currentThread().getName() + " " + table.toString());
+		tableLocks.locks.get(0).lock();
+		//System.out.println("Locked Table " + Thread.currentThread().getName() + " " + tableLocks.toString());
 		// Visit all rows identified by SELECT and meeting the WHERE clause.
 		// The RecordVisitorLock class is incomplete, it needs to be completed
 		// as part of the deadlock avoidance policy.
 		RecordVisitorLock method = new RecordVisitorLock(table);
-		
+
 		table.visit(method, stmt.getWhereClause());
-		table.rowLocks.add(method.lock);
-		//System.out.println("Added row lock, " + table.rowLocks.locks);
+		rowLocks.add(method.lock);
+		//System.out.println("Added row lock, " + rowLocks.locks);
 		//System.out.println("Locked Row. " + Thread.currentThread().getName());
-		//table.lockSet.locks.get(0).unlock();
 		return new ResultSet(true);
 	}
 
@@ -87,13 +88,13 @@ class QueryEngine {
 	}
 
 	public ResultSet execute(SQLInsertIntoStatement stmt) {
-		
+
 		Table table = database.getTable(stmt.getTable().getTableName());
-		table.tableLocks.locks.get(0).lock();
+		tableLocks = database.getTable("account").tableLocks;
+		tableLocks.locks.get(0).lock();
 		//System.out.println("Locked Table INSERT INTO. " + Thread.currentThread().getName());
 		TableSchema schema = table.getSchema();
-		
-		
+
 		Record record = schema.assembleRecord(stmt.getFields(), stmt.getValues());
 		if (record == null)
 			return new ResultSet(); // failure
@@ -102,23 +103,29 @@ class QueryEngine {
 		return new ResultSet(success);
 	}
 
-	public ResultSet execute(SQLStartTransactionStatement stmt)  {
+	public ResultSet execute(SQLStartTransactionStatement stmt) {
 		// A new transaction starts. Prepare to collect locks.
 		// You can use the LockSet class in LockSet.java to help you
+		tableLocks = database.getTable("account").tableLocks;
+		rowLocks = database.getTable("account").rowLocks;
 		return new ResultSet(true);
 	}
 
 	public ResultSet execute(SQLCommitStatement stmt) {
 		// Release all locks held
-		database.getTable("account").tableLocks.locks.get(1).lock();
-		//System.out.println("Unlocking ALL " + Thread.currentThread().getName());
-		
-		if(database.getTable("account").rowLocks.locks.size() > 0) {
-			for(int i = 0; i < database.getTable("account").rowLocks.locks.size(); i++)
-				database.getTable("account").rowLocks.locks.remove(i);
+		tableLocks.locks.get(1).lock(); // don't let .release() execute again until finished.
+		// System.out.println("Unlocking ALL " + Thread.currentThread().getName());
+
+		// Unlock rows
+		if (rowLocks.locks.size() > 0) {
+			// Unlocks and removes from rowLocks
+			// Imagine how many row locks could eventually be in here!
+			for (int i = 0; i < rowLocks.locks.size(); i++)
+				rowLocks.locks.remove(i);
 		}
 		
-		database.getTable("account").tableLocks.release();
+		// Unlock table
+		tableLocks.release();
 		//System.out.println("Unlocked ALL " + Thread.currentThread().getName());
 		return new ResultSet(true);
 	}
