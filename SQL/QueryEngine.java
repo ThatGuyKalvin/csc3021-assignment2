@@ -126,17 +126,27 @@ class QueryEngine {
 		if (rowLocks.locks.size() > 0) {
 			// Unlocks and removes from rowLocks
 			// Imagine how many row locks could eventually be in here!
-			for (int i = 0; i < rowLocks.locks.size(); i++)
-				rowLocks.locks.remove(i);
+			for (int i = 0; i < rowLocks.locks.size(); i++){
+				ReentrantLock rowLock = (ReentrantLock)rowLocks.locks.get(i);
+				if(rowLock.isHeldByCurrentThread()){
+					rowLock.unlock();
+				}
+			}
 		}
+
+		rowLocks = new LockSet();
 		
 		if (indexLocks.locks.size() > 0) {
 			// Unlocks and removes from rowLocks
 			// Imagine how many row locks could eventually be in here!
-			for (int i = 0; i < indexLocks.locks.size(); i++)
-				indexLocks.locks.remove(i);
+			for (int i = 0; i < indexLocks.locks.size(); i++){
+				ReentrantLock indexLock = (ReentrantLock)indexLocks.locks.get(i);
+				if(indexLock != null && indexLock.isHeldByCurrentThread()){
+					indexLock.unlock();
+				}
+			}
 		}
-		
+
 		System.out.println("Unlocked ALL " + Thread.currentThread().getName());
 		// Unlock table
 		tableLocks.release();
