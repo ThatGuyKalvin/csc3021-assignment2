@@ -13,8 +13,9 @@ class RecordVisitorUpdate implements RecordVisitor {
     }
     
     public void visit( Record row ) {
-	if( table.update( row, field, value ) )
+	if( table.update( row, field, value ) ) {
 	    result.add( row );
+	}
 	else
 	    result.set( false ); // indicate failure
     }

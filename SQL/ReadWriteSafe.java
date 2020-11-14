@@ -1,4 +1,3 @@
-
 public class ReadWriteSafe implements ReadWrite {
 
 	private int readers = 0;

@@ -3,17 +3,25 @@ import java.util.LinkedList;
 import java.util.concurrent.locks.Lock;
 
 class LockSet {
-    List<Lock> locks;
+	List<Lock> locks;
 
-    LockSet() {
-	locks = new LinkedList<Lock>();
-    }
-
-    public void add( Lock lock ) { locks.add( lock ); }
-
-    public void release() {
-	for( Lock lock : locks ) {
-	    lock.unlock();
+	LockSet() {
+		locks = new LinkedList<Lock>();
 	}
-    }
+
+	public void add(Lock lock) {
+		locks.add(lock);
+	}
+	
+	public void remove(Lock lock) {
+		lock.unlock();
+		locks.remove(lock);
+	}
+
+
+	public void release() {
+		for (Lock lock : locks) {
+			lock.unlock();
+		}
+	}
 };
